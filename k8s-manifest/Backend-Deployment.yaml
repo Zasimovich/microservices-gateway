@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: z-test
+  labels:
+    tier: gateway
+    app: microservices
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        tier: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: adept23/microservices-backend:1.0
+          envFrom:
+            - configMapRef:
+                name: urls-config
+          imagePullPolicy: Always
+          env:
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: msvc-secret
+                  key: secret
+          readinessProbe:
+              httpGet:
+                path: /actuator/health
+                port: 8080
+              initialDelaySeconds: 5
+              periodSeconds: 3
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
